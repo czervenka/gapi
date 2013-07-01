@@ -10,6 +10,8 @@ lightweight, understandable and resources friendly.
 
 Only Calendar and Tasks APIs are currently implemented.
 
+For examples of use see `gapi/__init__.py`
+
 To start using this library create a GAE instance (see
 https://developers.google.com/appengine/docs/python/gettingstartedpython27/introduction)
 and acquire service_email service_key. To obtain one, 
