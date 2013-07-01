@@ -44,6 +44,9 @@ class Api(object):
         # to clear calendar completely
         api.calendar.calendar.clear()
 
+        # to impersonate to a different user
+        api.impersonate(user_email)
+
         # read Google documentation and use IPython to explore all apis
     """
 
@@ -57,9 +60,14 @@ class Api(object):
             service = all_apis[api]
             scopes.add(service._default_scope)
             services[api] = service
+        self._services = services
         for service_name, service in services.items():
             setattr(
                 self,
                 service_name,
                 service(service_email=service_email, service_key=service_key, scope=list(scopes), email=impersonate_as),
             )
+
+    def impersonate(self, email):
+        for service in self._services:
+            getattr(self, service).email = email

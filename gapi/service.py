@@ -16,6 +16,7 @@ __author__ = 'Robin Gottfried <google@kebet.cz>'
 
 import logging
 from json import loads, dumps
+from uuid import uuid1
 from copy import deepcopy
 from .oauth2 import TokenRequest
 from .exceptions import GoogleApiHttpException, NotFoundException
@@ -33,6 +34,8 @@ class Service(object):
         self.email = email
         self._service_email = service_email
         self._service_key = service_key
+        self.batch_mode = False
+        self._batch_items = {}
 
     def _get_token(self):
         if not self.email:
@@ -45,12 +48,12 @@ class Service(object):
         return self._email
 
     def _set_email(self, email):
-        if self.email != email:
+        if self._email != email:
             self.token = None
             self._email = email
 
     def _del_email(self):
-        self.email = None
+        self._email = None
 
     email = property(_get_email, _set_email, _del_email)
 
@@ -68,7 +71,34 @@ class Service(object):
 
     scope = property(_get_scope, _set_scope, _del_scope)
 
+    def _add_batch(self, callback, **kwargs):
+        uuid = str(uuid1())
+        kwargs['__callback__'] = callback
+        self._batch_items[uuid] = kwargs
+
+    def fetch_batch(self):
+        from .multipart import build_multipart, parse_multipart
+        url = 'https://www.googleapis.com/batch'
+        method = 'POST'
+        headers, payload = build_multipart(self._batch_items)
+
+        responses = parse_multipart(fetch(url=url, method=method, headers=headers, payload=payload))
+        for uuid, response in responses.items():
+            item = self._batch_items[uuid]
+            try:
+                response = self._parse_response(response, item['kwargs'])
+            except Exception, e:
+                response = e
+            item['__callback__'](response=response, request=item)
+        self._batch_items = {}
+
     def fetch(self, url, method='GET', headers={}, payload=None, params={}):
+        headers = deepcopy(headers)
+        params = deepcopy(params)
+        if '_callback' in params:
+            callback = params.pop('_callback')
+        else:
+            callback = None
         from urllib import urlencode
         kwargs = {}
         for k in 'url', 'method', 'headers', 'payload', 'params':
@@ -78,8 +108,16 @@ class Service(object):
         if 'content-type' not in headers:
             headers['content-type'] = 'application/json'
         headers['Authorization'] = str(self._get_token())
-        payload = dumps(payload)
-        result = fetch(url=url, method=method, headers=headers, payload=payload)
+        if payload:
+            payload = dumps(payload)
+        if callback:
+            self._add_batch(callback, url=url, method=method, headers=headers, payload=payload, kwargs=kwargs)  # FIXME: kwargs are duplicate argument
+            return None
+        else:
+            result = fetch(url=url, method=method, headers=headers, payload=payload)
+            return self._parse_response(result, kwargs)
+
+    def _parse_response(self, result, kwargs):
         if str(result.status_code)[0] != '2':
             if result.status_code == 404:
                 raise NotFoundException(result)
