@@ -16,6 +16,9 @@ __author__ = 'Robin Gottfried <google@kebet.cz>'
 
 """
 Uses PyCrypto
+
+OAuth 2.0 for Server to Server Applications
+see https://developers.google.com/accounts/docs/OAuth2ServiceAccount
 """
 from types import StringTypes
 from time import time
@@ -45,7 +48,7 @@ class TokenRequest(object):
         if isinstance(scope, (list, tuple)):
             scope = ' '.join(scope)
         self.scope = scope
-        self.impersonate_as = impersonate_as
+        self.email = impersonate_as
         self.life_time = life_time
 
     def get_claims(self):
@@ -57,13 +60,13 @@ class TokenRequest(object):
             "iat": request_time,
             "exp": request_time + self.life_time,
         }
-        if self.impersonate_as is not None:
-            claims['prn'] = self.impersonate_as
+        if self.email is not None:
+            claims['prn'] = self.email
         return claims
 
     def _cache_key(self):
         """Key used to identify in cache"""
-        return 'token:%s:%s:%s' % (self.service_email, self.scope, self.impersonate_as)
+        return 'token:%s:%s:%s' % (self.service_email, self.scope, self.email)
 
     def sign(self, message):
         return '.'.join((message, google_base64_url_encode(sing_RS256(message, self.key))))
@@ -93,7 +96,7 @@ class TokenRequest(object):
         """
         token = self._cache_get()
         if not token:
-            logging.debug('Fetching new token for %s/%s.' % (self.service_email, self.impersonate_as))
+            logging.debug('Fetching new token for %s/%s.' % (self.service_email, self.email))
             result = fetch(
                 'https://accounts.google.com/o/oauth2/token',
                 method='POST',
@@ -107,7 +110,7 @@ class TokenRequest(object):
                 except Exception, e:
                     pass
                 if error == 'invalid_grant':
-                    raise InvalidGrantException(result, "Error getting token for %r (service: %r)" % (self.service_email, self.impersonate_as))
+                    raise InvalidGrantException(result, "Error getting token for %r (service: %r)" % (self.service_email, self.email))
                 raise Exception(result.status_code, result.content)  # TODO: custom exception
             token = loads(result.content)
             self._cache_set(token)

@@ -77,6 +77,8 @@ class Service(object):
         self._batch_items[uuid] = kwargs
 
     def fetch_batch(self):
+        if not self._batch_items:
+            return
         from .multipart import build_multipart, parse_multipart
         url = 'https://www.googleapis.com/batch'
         method = 'POST'
@@ -84,13 +86,12 @@ class Service(object):
 
         responses = parse_multipart(fetch(url=url, method=method, headers=headers, payload=payload))
         for uuid, response in responses.items():
-            item = self._batch_items[uuid]
+            item = self._batch_items.pop(uuid)
             try:
                 response = self._parse_response(response, item['kwargs'])
             except Exception, e:
                 response = e
             item['__callback__'](response=response, request=item)
-        self._batch_items = {}
 
     def fetch(self, url, method='GET', headers={}, payload=None, params={}):
         headers = deepcopy(headers)
@@ -107,7 +108,7 @@ class Service(object):
             url += '?' + urlencode(params)
         if 'content-type' not in headers:
             headers['content-type'] = 'application/json'
-        headers['Authorization'] = str(self._get_token())
+        headers['authorization'] = self._get_token()
         if payload:
             payload = dumps(payload)
         if callback:
