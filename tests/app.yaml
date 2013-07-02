@@ -1,0 +1,13 @@
+application: gapi-test
+api_version: 1
+runtime: python27
+threadsafe: yes
+
+libraries:
+  - name: pycrypto
+    version: latest
+
+handlers:
+- url: /test
+  static_dir: .
+  login: required
