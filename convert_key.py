@@ -32,6 +32,7 @@ except ImportError:
         answer = raw_input()
         if answer.lower() in ['y', 'yes', 'yeah', 'yeah!']:
             pip.main(['install', 'pyOpenSSL'])
+            from OpenSSL.crypto import load_pkcs12, dump_privatekey, FILETYPE_PEM
             print "\n\n\nOpenSSL library installed.\n\n\n"
         else:
             print "Exitting.\n\nYou must install pyOpenSSL manually to use this utility.\n(ie. by running `pip install pyOpenSSL`\n\n"
@@ -44,19 +45,20 @@ def _usage():
     If no pem_file is specified as argument, it will be written to std out.
 """ % basename(sys.argv[0])
 
-def _main():
-    if len(sys.argv) < 2:
+def main(*args):
+    if len(args) < 2:
         _usage()
         sys.exit(1)
-    archive = load_pkcs12(open(sys.argv[1], 'rb').read(), 'notasecret')
+    archive = load_pkcs12(open(args[1], 'rb').read(), 'notasecret')
     key = archive.get_privatekey()
     pem = dump_privatekey(FILETYPE_PEM, key)
-    if len(sys.argv) > 2:
-        f = open(sys.argv[2], 'wb')
+    if len(args) > 2:
+        f = open(args[2], 'wb')
         f.write(pem)
         f.close()
+        return ''
     else:
-        print pem
+        return pem
 
 if __name__ == '__main__':
-    _main()
+    print main(*sys.argv)
