@@ -13,19 +13,22 @@ Web Token) for OAuth 2.0 authentication. I found it little painful to use the
 Google's python library for this task.
 
 **Features** I did not found in Google's library
+
 *(reasons to use this one ;))*
+
 * google.appengine.api.memcache to store auth tokens (only tokens, nothing more),
 * simple way to run batch requests,
 * automatically repeat request when it fails,
 * easy paging through gotten records.
 
-*Note: Only Calendar and Tasks APIs are currently implemented. But other can be added easily*
+*Note: Only Calendar and Tasks APIs are currently implemented. But others can be added easily*
 
 For examples of use see [gapi/__init__.py](gapi/__init__.py)
 
 To start using this library create a GAE project (see
 [Introduction](https://developers.google.com/appengine/docs/python/gettingstartedpython27/introduction))
 and acquire service_email and  service_key. To obtain one, 
+
 1. go to [API Console](https://code.google.com/apis/console) and click "API Access" in the left menu
 2. Click the "Create an OAuth 2.0 client ID..." button
 3. Fill the form (only "Product name" is required) and click "Next"
