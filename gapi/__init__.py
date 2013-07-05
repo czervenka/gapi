@@ -65,8 +65,15 @@ class Api(object):
             setattr(
                 self,
                 service_name,
-                service(service_email=service_email, service_key=service_key, scope=list(scopes), email=impersonate_as, validate_certificate=validate_certificate),
+                service(service_email=service_email, service_key=service_key, scope=scopes, email=impersonate_as, validate_certificate=validate_certificate),
             )
+
+    @property
+    def scopes(self):
+        if self._services:
+            return ' '.join(getattr(self, self._services.keys()[0]).scope)
+        else:
+            return None
 
     def impersonate(self, email):
         for service in self._services:
