@@ -15,11 +15,14 @@
 __author__ = 'Robin Gottfried <google@kebet.cz>'
 
 import logging
+from google.appengine.api import memcache
 from json import loads, dumps
 from uuid import uuid1
 from copy import deepcopy
+from time import sleep
+from .gapi_utils import SavedCall
 from .oauth2 import TokenRequest
-from .exceptions import GoogleApiHttpException, NotFoundException
+from .exceptions import GoogleApiHttpException, NotFoundException, DailyLimnitExceededException
 from google.appengine.api.urlfetch import fetch
 
 
@@ -27,11 +30,12 @@ class Service(object):
 
     BASE_URL = 'https://www.googleapis.com'
 
-    def __init__(self, service_email, service_key, scope=None, email=None):
+    def __init__(self, service_email, service_key, scope=None, email=None, validate_certificate=True):
         self._email = None
         self._scope = None
         self.scope = scope
         self.email = email
+        self.validate_certificate = validate_certificate
         self._service_email = service_email
         self._service_key = service_key
         self.batch_mode = False
@@ -41,7 +45,7 @@ class Service(object):
         if not self.email:
             return None
         if self.token is None:
-            self.token = TokenRequest(self._service_email, self._service_key, self.scope, self.email)
+            self.token = TokenRequest(self._service_email, self._service_key, self.scope, self.email, validate_certificate=self.validate_certificate)
         return self.token
 
     def _get_email(self):
@@ -84,7 +88,7 @@ class Service(object):
         method = 'POST'
         headers, payload = build_multipart(self._batch_items)
 
-        responses = parse_multipart(fetch(url=url, method=method, headers=headers, payload=payload))
+        responses = parse_multipart(fetch(url=url, method=method, headers=headers, payload=payload, validate_certificate=self.validate_certificate))
         for uuid, response in responses.items():
             item = self._batch_items.pop(uuid)
             try:
@@ -115,7 +119,12 @@ class Service(object):
             self._add_batch(callback, url=url, method=method, headers=headers, payload=payload, kwargs=kwargs)  # FIXME: kwargs are duplicate argument
             return None
         else:
-            result = fetch(url=url, method=method, headers=headers, payload=payload)
+            call = SavedCall(fetch, url=url, method=method, headers=headers, payload=payload, validate_certificate=self.validate_certificate)
+            result = call()
+            if str(result.status_code)[0] == '5':
+                logging.warning('Retrying request to Google API (got status code %s).' % result.status_code)
+                sleep(0.1)
+                result = call()
             return self._parse_response(result, kwargs)
 
     def _parse_response(self, result, kwargs):
@@ -123,7 +132,13 @@ class Service(object):
             if result.status_code == 404:
                 raise NotFoundException(result)
             else:
-                raise GoogleApiHttpException(result)
+                data = loads(result.content)
+                error = data['error']
+                if result.status_code == 403 and 'errors' in error and error.get('errors', []) and error['errors'][0]['reason'] == 'dailyLimitExceeded':
+                    memcache.set('off-' + self.token.service_email, 3600) # mark off for hour
+                    raise DailyLimnitExceededException(result, kwargs['url'])
+                else:
+                    raise GoogleApiHttpException(result)
         else:
             if result.status_code == 204:
                 return None
