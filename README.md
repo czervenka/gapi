@@ -23,11 +23,45 @@ Google's python library for this task.
 
 *Note: Only Calendar and Tasks APIs are currently implemented. But others can be added easily*
 
-For examples of use see [gapi/__init__.py](gapi/__init__.py)
+Quick example
+--
+        from gapi import Api
+        api = Api(['calendar', 'tasks'], '983417309817307013970412734012734289@accounts.google.com', 'keys/key.pem', 'admin@example.com')
 
-To start using this library create a GAE project (see
-[Introduction](https://developers.google.com/appengine/docs/python/gettingstartedpython27/introduction))
-and acquire service_email and  service_key. To obtain one, 
+        # list all events
+        response = api.calendar.events.list()
+        events = []
+        for events_page in response.iter_pages():
+            events.extend(events_page.get('items', []))
+
+        # update an event
+        event =events[0]
+        event['summary'] = 'Modified summary: ' + event['summary']
+        api.calendar.events.update(event)
+
+        # delete an event
+        api.calendar.events.delete(event)
+
+        # to clear calendar completely
+        api.calendar.calendar.clear()
+
+        # to impersonate to a different user
+        api.impersonate(user_email)
+
+        # read Google documentation and use IPython to explore all apis
+
+
+Tiny tutorial
+--
+
+... how to access calendar on your Google APPs domain from App Engine
+
+A. Create a GAE project
+^^
+(see [Introduction](https://developers.google.com/appengine/docs/python/gettingstartedpython27/introduction))
+
+B. Aquire service_email and  service_key. To obtain one, 
+^^
 
 1. go to [API Console](https://code.google.com/apis/console) and click "API Access" in the left menu
 2. Click the "Create an OAuth 2.0 client ID..." button
