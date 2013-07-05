@@ -28,7 +28,9 @@ client ID in your Google APPs [domain control panel](https://admin.google.com).
 Depending on version of control panel, you can add new API client ID under
 "Advanced tools" / "Authentication" / "Manage third party OAuth Client access"
 
-To find scopes, you need try:
+To find scopes, you need, try something like:
+
+    # example for calendar api and tasks api
 
     from gapi import Api
     api = Api(['calendar', 'tasks'], 'anything', 'anything')
