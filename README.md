@@ -1,16 +1,16 @@
 GAPI
 ====
-A library for ease access of Google API from Google App Engine
+A library for easy access to Google API from Google App Engine
 
 Introduction
 ------------
-This library alows easy acces to Google API from Google App Engine (GAE)
-application using OAuth 2.0 and service account. I is intended to be
+This library alows easy acces to *Google API* from Google *App Engine* (GAE)
+application using OAuth 2.0 and *service account*. I is intended to be
 lightweight, understandable and resources friendly.
 
 Only Calendar and Tasks APIs are currently implemented.
 
-For examples of use see `gapi/__init__.py`
+For examples of use see [gapi/__init__.py](gapi/__init__.py)
 
 To start using this library create a GAE instance (see
 https://developers.google.com/appengine/docs/python/gettingstartedpython27/introduction)
