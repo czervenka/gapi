@@ -98,4 +98,9 @@ To find scopes, you need, try something like:
     api = Api(['calendar', 'tasks'], 'anything', 'anything')
     print api.scope
 
+To Do
+--
 
+* better documentation
+* tests
+* build APIs from Googles API [Discovery service](https://www.googleapis.com/discovery/v1/apis)
