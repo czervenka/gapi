@@ -32,6 +32,7 @@ from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 
+from .gapi_utils import SavedCall
 from .exceptions import InvalidGrantException
 
 JWT_HEADER = {
@@ -42,7 +43,7 @@ JWT_HEADER = {
 
 class TokenRequest(object):
 
-    def __init__(self, service_email, key, scope, impersonate_as=None, life_time=3600):
+    def __init__(self, service_email, key, scope, impersonate_as=None, life_time=3600, validate_certificate=True):
         self.service_email = service_email
         self.key = key
         if isinstance(scope, (list, tuple)):
@@ -50,6 +51,7 @@ class TokenRequest(object):
         self.scope = scope
         self.email = impersonate_as
         self.life_time = life_time
+        self.validate_certificate = validate_certificate
 
     def get_claims(self):
         request_time = int(time())
@@ -96,12 +98,18 @@ class TokenRequest(object):
         """
         token = self._cache_get()
         if not token:
-            logging.debug('Fetching new token for %s/%s.' % (self.service_email, self.email))
-            result = fetch(
+            # logging.debug('Fetching new token for %s/%s.' % (self.service_email, self.email))
+
+            call = SavedCall(fetch,
                 'https://accounts.google.com/o/oauth2/token',
                 method='POST',
-                payload=self.get_payload()
+                payload=self.get_payload(),
+                validate_certificate=self.validate_certificate,
             )
+            result = call()
+            if str(result.status_code) == '5':
+                sleep(0.1)
+                result = call()
             if result.status_code != 200:
                 error = ''
                 try:
