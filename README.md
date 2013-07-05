@@ -26,7 +26,12 @@ Google's python library for this task.
 Quick example
 --
         from gapi import Api
-        api = Api(['calendar', 'tasks'], '983417309817307013970412734012734289@accounts.google.com', 'keys/key.pem', 'admin@example.com')
+        api = Api(
+            ['calendar', 'tasks'],  # the apis to use
+            '983417309817307013970412734012734289@accounts.google.com',  # API project service client email
+            'keys/key.pem',  # API project service key
+            'admin@example.com',  # impersonate as user
+        )
 
         # list all events
         response = api.calendar.events.list()
@@ -47,6 +52,15 @@ Quick example
 
         # to impersonate to a different user
         api.impersonate(user_email)
+
+        # batch call
+        def process_results(result, request):
+            print 'Got results %r' % result
+
+        for n in xrange(10):
+            api.calendar.events.list(_callback=process_results)
+
+        api.calendar.fetch_batch()
 
         # read Google documentation and use IPython to explore all apis
 
