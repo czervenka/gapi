@@ -50,7 +50,7 @@ class Api(object):
         # read Google documentation and use IPython to explore all apis
     """
 
-    def __init__(self, apis, service_email, service_key, impersonate_as=None):
+    def __init__(self, apis, service_email, service_key, impersonate_as=None, validate_certificate=True):
         all_apis = ApiService._services
         scopes = set()
         services = {}
@@ -65,7 +65,7 @@ class Api(object):
             setattr(
                 self,
                 service_name,
-                service(service_email=service_email, service_key=service_key, scope=list(scopes), email=impersonate_as),
+                service(service_email=service_email, service_key=service_key, scope=list(scopes), email=impersonate_as, validate_certificate=validate_certificate),
             )
 
     def impersonate(self, email):
