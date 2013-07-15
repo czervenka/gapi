@@ -65,7 +65,7 @@ class Api(object):
             setattr(
                 self,
                 service_name,
-                service(service_email=service_email, service_key=service_key, scope=scopes, email=impersonate_as, validate_certificate=validate_certificate),
+                service(service_email=service_email, service_key=service_key, scope=list(scopes), email=impersonate_as, validate_certificate=validate_certificate),
             )
 
     @property

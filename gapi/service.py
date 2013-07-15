@@ -115,6 +115,7 @@ class Service(object):
         headers['authorization'] = self._get_token()
         if payload:
             payload = dumps(payload)
+        # logging.debug('Fetching: %s' % url)
         if callback:
             self._add_batch(callback, url=url, method=method, headers=headers, payload=payload, kwargs=kwargs)  # FIXME: kwargs are duplicate argument
             return None
