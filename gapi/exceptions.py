@@ -41,13 +41,22 @@ class GoogleApiHttpException(GapiException):
 class NotFoundException(GoogleApiHttpException):
     pass
 
+
 class DailyLimnitExceededException(GoogleApiHttpException):
     def __init__(self, result, url):
         self.url = url
         super(self.__class__, self).__init__(result)
 
-class InvalidGrantException(GoogleApiHttpException):
 
+class PermitionException(GoogleApiHttpException):
     def __init__(self, result, message):
         self.message = message
-        super(self.__class__, self).__init__(result)
+        super(PermitionException, self).__init__(result)
+
+
+class InvalidGrantException(PermitionException):
+    pass
+
+
+class InvalidCredentialsException(PermitionException):
+    pass

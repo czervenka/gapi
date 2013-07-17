@@ -20,10 +20,10 @@ from json import loads, dumps
 from uuid import uuid1
 from copy import deepcopy
 from time import sleep
-from .gapi_utils import SavedCall
+from .gapi_utils import SavedCall, api_fetch
 from .oauth2 import TokenRequest
-from .exceptions import GoogleApiHttpException, NotFoundException, DailyLimnitExceededException
-from google.appengine.api.urlfetch import fetch
+from .exceptions import GoogleApiHttpException, NotFoundException, DailyLimnitExceededException, InvalidCredentialsException
+from google.appengine.api.urlfetch_errors import DeadlineExceededError
 
 
 class Service(object):
@@ -42,8 +42,6 @@ class Service(object):
         self._batch_items = {}
 
     def _get_token(self):
-        if not self.email:
-            return None
         if self.token is None:
             self.token = TokenRequest(self._service_email, self._service_key, self.scope, self.email, validate_certificate=self.validate_certificate)
         return self.token
@@ -88,7 +86,7 @@ class Service(object):
         method = 'POST'
         headers, payload = build_multipart(self._batch_items)
 
-        responses = parse_multipart(fetch(url=url, method=method, headers=headers, payload=payload, validate_certificate=self.validate_certificate))
+        responses = parse_multipart(api_fetch(url=url, method=method, headers=headers, payload=payload, validate_certificate=self.validate_certificate))
         for uuid, response in responses.items():
             item = self._batch_items.pop(uuid)
             try:
@@ -120,13 +118,8 @@ class Service(object):
             self._add_batch(callback, url=url, method=method, headers=headers, payload=payload, kwargs=kwargs)  # FIXME: kwargs are duplicate argument
             return None
         else:
-            call = SavedCall(fetch, url=url, method=method, headers=headers, payload=payload, validate_certificate=self.validate_certificate)
-            result = call()
-            if str(result.status_code)[0] == '5':
-                logging.warning('Retrying request to Google API (got status code %s).' % result.status_code)
-                sleep(0.1)
-                result = call()
-            return self._parse_response(result, kwargs)
+            response = api_fetch(url=url, method=method, headers=headers, payload=payload, validate_certificate=self.validate_certificate)
+            return self._parse_response(response, kwargs)
 
     def _parse_response(self, result, kwargs):
         if str(result.status_code)[0] != '2':
@@ -135,9 +128,17 @@ class Service(object):
             else:
                 data = loads(result.content)
                 error = data['error']
-                if result.status_code == 403 and 'errors' in error and error.get('errors', []) and error['errors'][0]['reason'] == 'dailyLimitExceeded':
-                    memcache.set('off-' + self.token.service_email, 3600) # mark off for hour
-                    raise DailyLimnitExceededException(result, kwargs['url'])
+                if str(result.status_code)[0] == '4' and 'errors' in error and error.get('errors', []):
+                    reason = error['errors'][0]['reason']
+                    if reason == 'dailyLimitExceeded' and result.status_code == 403:
+                        memcache.set('off-' + self.token.service_email, 3600)  # mark off for hour
+                        logging.info('Daily limit exceeded while getting %r for %r.' % (kwargs['url'], self.email))
+                        raise DailyLimnitExceededException(result, kwargs['url'])
+                    elif reason == 'authError' and result.status_code == 401:
+                        logging.info('Invalid credentials while getting %r for %r.' % (kwargs['url'], self.email))
+                        raise InvalidCredentialsException(result, kwargs['url'])
+                    else:
+                        raise GoogleApiHttpException(result)
                 else:
                     raise GoogleApiHttpException(result)
         else:

@@ -25,15 +25,14 @@ from time import time
 from base64 import urlsafe_b64encode
 from json import dumps, loads
 from google.appengine.api import memcache
-from google.appengine.api.urlfetch import fetch
 import logging
 
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 
-from .gapi_utils import SavedCall
-from .exceptions import InvalidGrantException
+from .gapi_utils import SavedCall, api_fetch
+from .exceptions import GoogleApiHttpException, InvalidGrantException
 
 JWT_HEADER = {
     "alg": "RS256",
@@ -100,16 +99,13 @@ class TokenRequest(object):
         if not token:
             # logging.debug('Fetching new token for %s/%s.' % (self.service_email, self.email))
 
-            call = SavedCall(fetch,
-                'https://accounts.google.com/o/oauth2/token',
-                method='POST',
-                payload=self.get_payload(),
-                validate_certificate=self.validate_certificate,
+            result = api_fetch(
+                 url='https://accounts.google.com/o/oauth2/token',
+                 method='POST',
+                 payload=self.get_payload(),
+                 validate_certificate=self.validate_certificate,
             )
-            result = call()
-            if str(result.status_code) == '5':
-                sleep(0.1)
-                result = call()
+
             if result.status_code != 200:
                 error = ''
                 try:
@@ -119,7 +115,7 @@ class TokenRequest(object):
                     pass
                 if error == 'invalid_grant':
                     raise InvalidGrantException(result, "Error getting token for %r (service: %r)" % (self.service_email, self.email))
-                raise Exception(result.status_code, result.content)  # TODO: custom exception
+                raise GoogleApiHttpException(result)  # TODO: custom exception
             token = loads(result.content)
             self._cache_set(token)
         return token
