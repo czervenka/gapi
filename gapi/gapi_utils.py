@@ -46,8 +46,6 @@ def api_fetch(*args, **kwargs):
     call = SavedCall(fetch, *args, **kwargs)
 
     while not succeeded and retry_count:
-        result = call()
-        break
         try:
             result = call()
             succeeded = True
