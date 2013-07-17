@@ -42,6 +42,7 @@ class TestToken(TestCase):
             'status_code': 200,
             'content': '{"access_token" : "1/8xbJqaOZXSUZbHLl5EOtu1pxz3fmmetKx9W8CV4t79M", "token_type" : "Bearer", "expires_in" : 3250 }'
         })
+        fetch.return_value.headers = {}
         header = str(token)
         self.assertEquals(header, 'Bearer 1/8xbJqaOZXSUZbHLl5EOtu1pxz3fmmetKx9W8CV4t79M', msg="The token string representation does not conform values from auth server")
         self.assertEquals(memcache.get.call_count, 1, msg="Token tries to retrieve the key from memcahced first.")
