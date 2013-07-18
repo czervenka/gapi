@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import base64
+import json
+from google.appengine.api.urlfetch import fetch
+
 __author__ = 'Lukas Marek <lukas.marek@gmail.com>'
 
 
@@ -35,6 +39,11 @@ class Files(ApiResource):
     _methods = 'list', 'get', 'insert', 'update', 'patch', 'delete', 'touch', 'trash', 'untrash'
     _base_path = '/files'
 
+    _boundary = '-------314159265358979323846'
+    _delimiter = "\r\n--" + _boundary + "\r\n"
+    _close_delim = "\r\n--" + _boundary + "--"
+
+
     def _api_touch(self, id, **kwargs):
         return self._service.fetch(self._get_item_url({'id': id}) + '/touch', method='POST', params=kwargs)
 
@@ -43,6 +52,48 @@ class Files(ApiResource):
 
     def _api_untrash(self, id, **kwargs):
         return self._service.fetch(self._get_item_url({'id': id}) + '/untrash', method='POST', params=kwargs)
+
+    def _api_insert(self, content, **kwargs):
+
+        request_body = self._get_body(content, **kwargs)
+        headers = self._get_headers()
+        url = self._get_upload_url()
+
+        response = fetch(url, method='POST', headers=headers, payload=request_body)
+        return self._service._parse_response(response, kwargs={url: url})
+
+    def _api_update(self, content, **kwargs):
+        if not 'id' in kwargs:
+            raise ValueError('Missing resource ID in **kwargs')
+        request_body = self._get_body(content, **kwargs)
+        headers = self._get_headers()
+        url = self._get_upload_url(id=kwargs['id'])
+
+        response = fetch(url, method='PUT', headers=headers, payload=request_body)
+        return self._service._parse_response(response, kwargs={url: url})
+
+
+    def _get_headers(self):
+        return {'Content-Type': 'multipart/mixed; boundary="' + self._boundary + '"',
+                   'authorization': self._service._get_token()}
+
+    def _get_body(self, content, **kwargs):
+        mime = kwargs['mime'] if 'mime' in kwargs else 'application/octet-stream'
+        title = kwargs['title'] if 'title' in kwargs else 'Untitled XXX'
+
+        metadata = {'title': title, 'mime': mime}
+        content = base64.b64encode(content)
+        return self._delimiter + 'Content-Type: application/json\r\n\r\n' + \
+                       json.dumps(metadata) + self._delimiter + 'Content-Type: ' + mime + '\r\n' + \
+                       'Content-Transfer-Encoding: base64\r\n' + '\r\n' + content + self._close_delim
+
+    def _get_upload_url(self, id=None):
+        url = self._get_item_url({})
+        #We have to alter the URL
+        if id is None:
+            return url.split('drive')[0] + 'upload/drive' + url.split('drive')[1] + "?uploadType=multipart&convert=true"
+        else:
+            return url.split('drive')[0] + 'upload/drive' + url.split('drive')[1] + '/' + id + "?uploadType=multipart&convert=true"
 
 
 class Revisions(ApiResource):
