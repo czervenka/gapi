@@ -61,6 +61,17 @@ class TestDrive(TestCase):
     def test_about(self):
         self.assertGreater(self.api.drive.about.get(), 0)
 
+    @patch('google.appengine.api.memcache', get_gae_mock_memcache())
+    def test_permissions(self):
+        file = self.api.drive.files.list()['items'][0]
+        perms_api = self.api.drive.permissions
+        perms_api.file_id = file['id']
+        permissions = perms_api.list()
+        self.assertGreater(len(permissions), 0)
+        #try to get first permission
+        perms_api.get(permissions['items'][0]['id'])
+
+
 
 
 

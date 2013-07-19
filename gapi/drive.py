@@ -25,7 +25,7 @@ class Service(ApiService):
 
     @property
     def _resources(self):
-        return [Files, Revisions, Changes, About]
+        return [Files, Revisions, Changes, About, Permissions]
 
 ApiService._services['drive'] = Service
 
@@ -69,12 +69,22 @@ class About(ApiResource):
         return self._service.fetch(self._get_item_url({}), method='GET', params=kwargs)
 
 
-
-
 class Changes(ApiResource):
     _name = 'changes'
     _methods = 'get', 'list'
     _base_path = '/changes'
+
+class Permissions(ApiResource):
+    _name = 'permissions'
+    _methods = 'delete', 'get', 'insert', 'list', 'patch', 'update'
+
+    def __init__(self, *args, **kwargs):
+        super(Permissions, self).__init__(*args, **kwargs)
+        self.file_id = None
+
+    @property
+    def _base_path(self):
+        return '/files/%s/permissions' % self.file_id
 
 
 
