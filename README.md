@@ -5,7 +5,7 @@ A library for easy access to Google API from Google App Engine
 Introduction
 ------------
 This library allows easy acces to **Google API** from Google **App Engine** (GAE)
-application using OAuth 2.0 and **service account**. I is intended to be
+application using OAuth 2.0 and **service account**. It is intended to be
 lightweight, understandable and resources friendly.
 
 Newer Google's APIs use JSON for communication and Signed JWT Assertation (JSON
