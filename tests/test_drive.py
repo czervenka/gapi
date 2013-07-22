@@ -1,3 +1,5 @@
+import json
+import logging
 from unittest import TestCase
 from mock import patch
 import mock
@@ -7,7 +9,7 @@ from nose import with_setup
 __author__ = 'krtek'
 
 KEY = """INSERT KEY HERE"""
-EMAIL = 'xxx@developer.gserviceaccount.com'
+EMAIL = 'xxxx@developer.gserviceaccount.com'
 IMPERSONATE = 'admin@d22.myapps.cz'
 
 
@@ -52,15 +54,27 @@ class TestDrive(TestCase):
 
     @patch('google.appengine.api.memcache', get_gae_mock_memcache())
     def test_changes(self):
-        self.assertEquals(self.api.drive.changes.list(), 'x')
         changes = self.api.drive.changes.list()['items']
-        self.assertGreater(0, changes)
-        self.api.drive.changes.get(changes[0]['id'])
+        self.assertGreater(len(changes), 0)
 
     @patch('google.appengine.api.memcache', get_gae_mock_memcache())
     def test_about(self):
         self.assertGreater(self.api.drive.about.get(), 0)
 
+    @patch('google.appengine.api.memcache', get_gae_mock_memcache())
+    def test_upload(self):
+        file = open('file_to_upload.txt')
+        response = self.api.drive.files.insert(file.read(), title='RIII!', mime='text/csv')
+        logging.info('Uploaded file: {response}'.format(response=response))
+
+    @patch('google.appengine.api.memcache', get_gae_mock_memcache())
+    def test_update(self):
+        file = open('file_to_upload.txt')
+        response = self.api.drive.files.insert(file.read(), title='GAPI Test upload', mime='text/csv')
+        #self.assertEquals('x', response.content)
+        id = response['id']
+        response = self.api.drive.files.update('updated content', title='GAPI Test update', mime='text/csv', id=id)
+        self.assertEquals(id, response['id'])
 
 
 
