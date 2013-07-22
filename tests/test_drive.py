@@ -76,6 +76,15 @@ class TestDrive(TestCase):
         response = self.api.drive.files.update('updated content', title='GAPI Test update', mime='text/csv', id=id)
         self.assertEquals(id, response['id'])
 
+    def test_permissions(self):
+        file = self.api.drive.files.list()['items'][0]
+        perms_api = self.api.drive.permissions
+        perms_api.file_id = file['id']
+        permissions = perms_api.list()
+        self.assertGreater(len(permissions), 0)
+        #try to get first permission
+        perms_api.get(permissions['items'][0]['id'])
+
 
 
 
