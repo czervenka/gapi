@@ -15,9 +15,7 @@
 __author__ = 'Robin Gottfried <google@kebet.cz>'
 
 from .client import ApiService
-import calendar
-import tasks
-import drive
+from .api import *
 
 
 class Api(object):

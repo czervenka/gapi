@@ -14,7 +14,7 @@
 #
 __author__ = 'Robin Gottfried <google@kebet.cz>'
 
-from .client import ApiService, ApiResource
+from ..client import ApiService, ApiResource
 
 class Service(ApiService):
 

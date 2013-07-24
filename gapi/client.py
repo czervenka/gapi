@@ -35,10 +35,19 @@ class ApiService(Service):
     _base_url = None
     _services = {}
 
-    def __init__(self, *args, **kwargs):
-        if not 'scope' in kwargs:
-            kwargs['scope'] = self._default_scope
-        Service.__init__(self, *args, **kwargs)
+    def __init__(self, service_email, service_key, scope=None, email=None, validate_certificate=True):
+        '''
+        @service_email ... service email from Google API console
+        @service_key   ... service key in PEM format (either path to file or it's content)
+        @scope         ... scope for the service (default RW scope of the api
+        @email         ... email of the user to impersonate as
+        @validate_certificate ... if validate server certificate
+        '''
+        if 'scope' is None:
+            scope = self._default_scope
+        Service.__init__(self, service_email, service_key, scope=scope, email=email, validate_certificate=validate_certificate)
+
+        # setup resources as self properties
         for resource in self._resources:
             setattr(self, resource._name, resource(self))
 

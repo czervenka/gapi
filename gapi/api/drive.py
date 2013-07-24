@@ -14,13 +14,13 @@
 #
 import base64
 import json
-from .gapi_utils import api_fetch
+from ..gapi_utils import api_fetch
+from ..client import ApiService, ApiResource
 from google.appengine.api.urlfetch import fetch
 
 __author__ = 'Lukas Marek <lukas.marek@gmail.com>'
 
 
-from .client import ApiService, ApiResource
 
 
 class Service(ApiService):
@@ -77,9 +77,10 @@ class Files(ApiResource):
 
     def _get_body(self, content, **kwargs):
         mime = kwargs.get('mime', 'application/octet-stream')
-        title = kwargs.get('title', 'Untitled XXX')
-
-        metadata = {'title': title, 'mime': mime}
+        metadata = {}
+        for key in 'description', 'indexableText', 'labels', 'lastViewedByMeDate', 'mimeType', 'modifiedDate', 'parents', 'title':
+            if key in kwargs:
+                metadata[key] = kwargs[key]
         content = base64.b64encode(content)
         return self._delimiter + 'Content-Type: application/json\r\n\r\n' + \
                        json.dumps(metadata) + self._delimiter + 'Content-Type: ' + mime + '\r\n' + \
