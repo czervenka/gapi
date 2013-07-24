@@ -1,3 +1,8 @@
+_multiprocess_can_split_ = False
+
+from init import setUp
+setUp()
+
 from unittest import TestCase
 from mock import patch
 import mock
@@ -12,7 +17,6 @@ class DictObject(object):
 
     def __init__(self, **properties):
         self.__dict__.update(properties)
-
 
 def get_gae_mock_fetch():
     fetch = mock.MagicMock()
@@ -32,6 +36,7 @@ class TestToken(TestCase):
     @patch('google.appengine.api.urlfetch.fetch', get_gae_mock_fetch())
     @patch('google.appengine.api.memcache', get_gae_mock_memcache())
     def test_gets_token(self):
+        'Token tests (offline)'
         from gapi import oauth2, exceptions
         from google.appengine.api.urlfetch import fetch
         from google.appengine.api import memcache
