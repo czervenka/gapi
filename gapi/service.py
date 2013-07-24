@@ -96,7 +96,7 @@ class Service(object):
             item['__callback__'](response=response, request=item)
 
     def fetch(self, url, method='GET', headers={}, payload=None, params={}):
-        headers = deepcopy(headers)
+        headers = dict([(key.lower(), value) for key, value in deepcopy(headers).items()])
         params = deepcopy(params)
         if '_callback' in params:
             callback = params.pop('_callback')
@@ -111,7 +111,7 @@ class Service(object):
         if 'content-type' not in headers:
             headers['content-type'] = 'application/json'
         headers['authorization'] = self._get_token()
-        if payload:
+        if payload and headers['content-type'] == 'application/json':
             payload = dumps(payload)
         # logging.debug('Fetching: %s' % url)
         if callback:
@@ -126,7 +126,12 @@ class Service(object):
             if result.status_code == 404:
                 raise NotFoundException(result)
             else:
-                data = loads(result.content)
+                headers = dict([ (key.lower(), value.lower()) for key, value in result.headers.items()])
+                if headers['content-type'].startswith('application/json'):
+                    data = loads(result.content)
+                else:
+                    print repr(headers)
+                    print result.content
                 error = data['error']
                 if str(result.status_code)[0] == '4' and 'errors' in error and error.get('errors', []):
                     reason = error['errors'][0]['reason']

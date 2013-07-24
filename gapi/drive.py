@@ -14,6 +14,7 @@
 #
 import base64
 import json
+from .gapi_utils import api_fetch
 from google.appengine.api.urlfetch import fetch
 
 __author__ = 'Lukas Marek <lukas.marek@gmail.com>'
@@ -43,7 +44,6 @@ class Files(ApiResource):
     _delimiter = "\r\n--" + _boundary + "\r\n"
     _close_delim = "\r\n--" + _boundary + "--"
 
-
     def _api_touch(self, id, **kwargs):
         return self._service.fetch(self._get_item_url({'id': id}) + '/touch', method='POST', params=kwargs)
 
@@ -59,8 +59,7 @@ class Files(ApiResource):
         headers = self._get_headers()
         url = self._get_upload_url()
 
-        response = fetch(url, method='POST', headers=headers, payload=request_body)
-        return self._service._parse_response(response, kwargs={url: url})
+        return self._service.fetch(url, method='POST', headers=headers, payload=request_body)
 
     def _api_update(self, content, **kwargs):
         if not 'id' in kwargs:
@@ -69,17 +68,16 @@ class Files(ApiResource):
         headers = self._get_headers()
         url = self._get_upload_url(id=kwargs['id'])
 
-        response = fetch(url, method='PUT', headers=headers, payload=request_body)
-        return self._service._parse_response(response, kwargs={url: url})
-
+        return self._service.fetch(url, method='PUT', headers=headers, payload=request_body)
 
     def _get_headers(self):
-        return {'Content-Type': 'multipart/mixed; boundary="' + self._boundary + '"',
-                   'authorization': self._service._get_token()}
+        return {
+            'Content-Type': 'multipart/mixed; boundary="' + self._boundary + '"',
+        }
 
     def _get_body(self, content, **kwargs):
-        mime = kwargs['mime'] if 'mime' in kwargs else 'application/octet-stream'
-        title = kwargs['title'] if 'title' in kwargs else 'Untitled XXX'
+        mime = kwargs.get('mime', 'application/octet-stream')
+        title = kwargs.get('title', 'Untitled XXX')
 
         metadata = {'title': title, 'mime': mime}
         content = base64.b64encode(content)
