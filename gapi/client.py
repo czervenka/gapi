@@ -14,6 +14,7 @@
 #
 __author__ = 'Robin Gottfried <google@kebet.cz>'
 
+from uuid import uuid1
 from datetime import datetime
 from .service import Service
 
@@ -62,7 +63,7 @@ class ApiService(Service):
 
 class ApiResource(object):
 
-    _methods = 'list', 'get', 'update', 'insert', 'path', 'delete'
+    _methods = 'list', 'get', 'update', 'insert', 'path', 'delete', 'watch'
 
     def __init__(self, service):
         self._service = service
@@ -105,3 +106,19 @@ class ApiResource(object):
     def _api_delete(self, id, **kwargs):
         kwargs = value_to_gdata(kwargs)
         return self._service.fetch(self._get_item_url({'id': id}), method='DELETE', params=kwargs)
+
+    def _api_watch(self, address, id=None, token=None, expiration=None):
+        if not id:
+            id = str(uuid1)
+        payload = {
+            'id': id,
+            'address': address,
+            'type': 'web_hook',
+        }
+        if token:
+            payload['token'] = token
+        if expiration:
+            payload['params'] = {
+                'ttl': expiration
+            }
+        return self._service.fetch(self._base_url + '/watch', method='POST', payload=payload)

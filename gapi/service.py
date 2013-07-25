@@ -22,7 +22,8 @@ from copy import deepcopy
 from time import sleep
 from .gapi_utils import SavedCall, api_fetch
 from .oauth2 import TokenRequest
-from .exceptions import GoogleApiHttpException, NotFoundException, DailyLimnitExceededException, InvalidCredentialsException
+from .exceptions import GoogleApiHttpException, NotFoundException, DailyLimnitExceededException, \
+        InvalidCredentialsException, UnauthorizedUrl
 from google.appengine.api.urlfetch_errors import DeadlineExceededError
 
 
@@ -142,6 +143,9 @@ class Service(object):
                     elif reason == 'authError' and result.status_code == 401:
                         logging.info('Invalid credentials while getting %r for %r.' % (kwargs['url'], self.email))
                         raise InvalidCredentialsException(result, kwargs['url'])
+                    if reason == 'push.webhookUrlUnauthorized' and result.status_code == 401:
+                        logging.info('Unauthorized webhook url %r (%r).' % (kwargs.get('address', 'n/a'), self.email))
+                        raise UnauthorizedUrl(result, kwargs.get('address', 'n/a'))
                     else:
                         raise GoogleApiHttpException(result)
                 else:

@@ -33,7 +33,7 @@ class Events(ApiResource):
     calendar = 'primary'
 
     _name = 'events'
-    _methods = 'list', 'get', 'insert', 'update', 'patch', 'delete', 'instances', 'updated'
+    _methods = 'list', 'get', 'insert', 'update', 'patch', 'delete', 'instances', 'updated', 'watch'
 
     @property
     def _base_path(self):

@@ -53,6 +53,8 @@ class PermitionException(GoogleApiHttpException):
         self.message = message
         super(PermitionException, self).__init__(result)
 
+class UnauthorizedUrl(PermitionException):
+    pass
 
 class InvalidGrantException(PermitionException):
     pass
