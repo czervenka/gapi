@@ -18,5 +18,4 @@ setup(
         ('tests', ('tests/test_generated_key.pem', 'tests/test_google_bundle.p12'))
     ],
     requires=['PyCrypto'],
-    setup_requires=[ 'gaetestbed', 'nose', 'nosegae', 'mock'],
 )
