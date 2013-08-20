@@ -14,6 +14,9 @@
 #
 __author__ = 'Robin Gottfried <google@kebet.cz>'
 
+AUTH_TYPE_V1 = 'oauth.v1'
+AUTH_TYPE_V2 = 'oauth.v2'
+
 from .client import ApiService
 from .api import *
 
@@ -49,7 +52,8 @@ class Api(object):
         # read Google documentation and use IPython to explore all apis
     """
 
-    def __init__(self, apis, service_email, service_key, impersonate_as=None, validate_certificate=True):
+    def __init__(self, apis, service_email, service_key, impersonate_as=None, validate_certificate=True, auth_type=AUTH_TYPE_V2):
+
         all_apis = ApiService._services
         scopes = set()
         services = {}
@@ -64,7 +68,7 @@ class Api(object):
             setattr(
                 self,
                 service_name,
-                service(service_email=service_email, service_key=service_key, scope=list(scopes), email=impersonate_as, validate_certificate=validate_certificate),
+                service(service_email=service_email, service_key=service_key, scope=list(scopes), email=impersonate_as, validate_certificate=validate_certificate, auth_type=auth_type)
             )
 
     @property

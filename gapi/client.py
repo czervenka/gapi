@@ -16,6 +16,7 @@ __author__ = 'Robin Gottfried <google@kebet.cz>'
 
 from uuid import uuid1
 from datetime import datetime
+from gapi import AUTH_TYPE_V2
 from .service import Service
 
 
@@ -36,7 +37,7 @@ class ApiService(Service):
     _base_url = None
     _services = {}
 
-    def __init__(self, service_email, service_key, scope=None, email=None, validate_certificate=True):
+    def __init__(self, service_email, service_key, scope=None, email=None, validate_certificate=True, auth_type=AUTH_TYPE_V2):
         '''
         @service_email ... service email from Google API console
         @service_key   ... service key in PEM format (either path to file or it's content)
@@ -46,7 +47,7 @@ class ApiService(Service):
         '''
         if 'scope' is None:
             scope = self._default_scope
-        Service.__init__(self, service_email, service_key, scope=scope, email=email, validate_certificate=validate_certificate)
+        Service.__init__(self, service_email, service_key, scope=scope, email=email, validate_certificate=validate_certificate, auth_type=auth_type)
 
         # setup resources as self properties
         for resource in self._resources:
@@ -56,8 +57,6 @@ class ApiService(Service):
     def _default_scope(self):
         raise NotImplementedError()
 
-    @property
-    def _resources(self):
         raise NotImplementedError()
 
 
@@ -109,7 +108,7 @@ class ApiResource(object):
 
     def _api_watch(self, address, id=None, token=None, expiration=None):
         if not id:
-            id = str(uuid1)
+            id = str(uuid1())
         payload = {
             'id': id,
             'address': address,

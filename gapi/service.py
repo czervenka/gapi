@@ -15,11 +15,13 @@
 __author__ = 'Robin Gottfried <google@kebet.cz>'
 
 import logging
+from urllib import urlencode
 from google.appengine.api import memcache
 from json import loads, dumps
 from uuid import uuid1
 from copy import deepcopy
 from time import sleep
+from gapi import AUTH_TYPE_V1, AUTH_TYPE_V2
 from .gapi_utils import SavedCall, api_fetch
 from .oauth2 import TokenRequest
 from .exceptions import GoogleApiHttpException, NotFoundException, DailyLimnitExceededException, \
@@ -31,7 +33,7 @@ class Service(object):
 
     BASE_URL = 'https://www.googleapis.com'
 
-    def __init__(self, service_email, service_key, scope=None, email=None, validate_certificate=True):
+    def __init__(self, service_email, service_key, scope=None, email=None, validate_certificate=True, auth_type=AUTH_TYPE_V2):
         self._email = None
         self._scope = None
         self.scope = scope
@@ -41,6 +43,7 @@ class Service(object):
         self._service_key = service_key
         self.batch_mode = False
         self._batch_items = {}
+        self.auth_type = auth_type
 
     def _get_token(self):
         if self.token is None:
@@ -96,6 +99,17 @@ class Service(object):
                 response = e
             item['__callback__'](response=response, request=item)
 
+    def _get_oauth1_headers(self, url, method, headers, params):
+        from .gdata_minimal.http_core import HttpRequest
+        from .gdata_minimal.gauth import TwoLeggedOAuthHmacToken
+        request = HttpRequest(url, method, headers)
+        token = TwoLeggedOAuthHmacToken(self._service_email, self._service_key, self.email)
+        token.modify_request(request)
+        headers.update(request.headers)
+        params.update(request.uri.query)
+        return str(request.uri)
+
+
     def fetch(self, url, method='GET', headers={}, payload=None, params={}):
         headers = dict([(key.lower(), value) for key, value in deepcopy(headers).items()])
         params = deepcopy(params)
@@ -103,15 +117,18 @@ class Service(object):
             callback = params.pop('_callback')
         else:
             callback = None
-        from urllib import urlencode
         kwargs = {}
         for k in 'url', 'method', 'headers', 'payload', 'params':
             kwargs[k] = locals()[k]
-        if params:
-            url += '?' + urlencode(params)
         if 'content-type' not in headers:
             headers['content-type'] = 'application/json'
-        headers['authorization'] = self._get_token()
+        if params:
+            url += '?' + urlencode(params)
+        if self.auth_type == AUTH_TYPE_V2:
+            headers['authorization'] = self._get_token()
+        elif self.auth_type == AUTH_TYPE_V1:
+            # modifies headers and params as well
+            url = self._get_oauth1_headers(url, method, headers, params)
         if payload and headers['content-type'] == 'application/json':
             payload = dumps(payload)
         # logging.debug('Fetching: %s' % url)

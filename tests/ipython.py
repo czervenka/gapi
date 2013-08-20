@@ -2,8 +2,6 @@
 import sys
 import IPython
 
-import local_keys
-
 sys.path.insert(0, '/usr/local/google_appengine')
 sys.path.insert(0, '..')
 
@@ -25,5 +23,9 @@ apiproxy_stub_map.apiproxy.RegisterStub(
     memcache_stub.MemcacheServiceStub(),
 )
 
+import local_keys
+
 from IPython.config.loader import Config
+
+
 IPython.embed()

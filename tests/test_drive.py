@@ -17,11 +17,7 @@ class Drive(TestCase):
             import local_keys
         except ImportError:
             raise SkipTest("Create local_keys.py to run this test (use local_keys-template.py as template).")
-        cls.api = Api(['drive'],
-            local_keys.SERVICE_EMAIL,
-            local_keys.SERVICE_KEY,
-            local_keys.USER_EMAIL
-        )
+        cls.api = Api(['drive'], **local_keys.AUTH)
         cls.file = {
             'content': '"a","b","c"\n1,2,3',
             'title': 'Title 123 42342342342----980903',

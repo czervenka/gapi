@@ -34,7 +34,7 @@ class Tasks(ApiResource):
     list_id = '@default'
 
     _name = 'tasks'
-    _methods = 'list', 'get', 'insert', 'update', 'patch', 'delete'
+    _methods = 'list', 'get', 'insert', 'update', 'patch', 'delete', 'watch'
 
     @property
     def _base_path(self):
