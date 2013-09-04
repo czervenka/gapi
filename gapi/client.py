@@ -57,8 +57,6 @@ class ApiService(Service):
     def _default_scope(self):
         raise NotImplementedError()
 
-        raise NotImplementedError()
-
 
 class ApiResource(object):
 
