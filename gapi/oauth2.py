@@ -93,7 +93,7 @@ class TokenRequest(object):
             lock = cache.gets(key)  # get and compare
             if lock != 1:
                 return False
-            self._locked = cache.cas(key, lock + 1,LOCK_TIMEOUT)  # set and compare has to return True if we were not late
+            self._locked = cache.cas(key, lock + 1, LOCK_TIMEOUT)  # set and compare has to return True if we were not late
             return self._locked
 
 
@@ -122,7 +122,7 @@ class TokenRequest(object):
         return get_memcache().get(self._cache_key())
 
     def _cache_set(self, token):
-        get_memcache().set(self._cache_key(), token, token['expires_in'])
+        get_memcache().set(self._cache_key(), token, token['expires_in']-300)
 
     def get_token(self):
         """
