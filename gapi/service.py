@@ -16,7 +16,6 @@ __author__ = 'Robin Gottfried <google@kebet.cz>'
 
 import logging
 from urllib import urlencode
-from google.appengine.api import memcache
 from json import loads, dumps
 from uuid import uuid1
 from copy import deepcopy
@@ -26,7 +25,6 @@ from .gapi_utils import SavedCall, api_fetch
 from .oauth2 import TokenRequest
 from .exceptions import GoogleApiHttpException, NotFoundException, DailyLimnitExceededException, \
         InvalidCredentialsException, UnauthorizedUrl
-from google.appengine.api.urlfetch_errors import DeadlineExceededError
 
 
 class Service(object):
@@ -154,7 +152,6 @@ class Service(object):
                 if str(result.status_code)[0] == '4' and 'errors' in error and error.get('errors', []):
                     reason = error['errors'][0]['reason']
                     if reason == 'dailyLimitExceeded' and result.status_code == 403:
-                        memcache.set('off-' + self.token.service_email, 3600)  # mark off for hour
                         logging.info('Daily limit exceeded while getting %r for %r.' % (kwargs['url'], self.email))
                         raise DailyLimnitExceededException(result, kwargs['url'])
                     elif reason == 'authError' and result.status_code == 401:
@@ -171,7 +168,10 @@ class Service(object):
             if result.status_code == 204:
                 return None
             else:
-                return ApiResult(loads(result.content), self.fetch, kwargs)
+                if result.headers.get('content-type').startswith('application/json'):
+                    return ApiResult(loads(result.content), self.fetch, kwargs)
+                else:
+                    return result
 
 
 class ApiResult(dict):

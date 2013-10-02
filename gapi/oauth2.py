@@ -21,23 +21,26 @@ OAuth 2.0 for Server to Server Applications
 see https://developers.google.com/accounts/docs/OAuth2ServiceAccount
 """
 from types import StringTypes
-from time import time
+from time import time, sleep
 from base64 import urlsafe_b64encode
+from md5 import md5
 from json import dumps, loads
-from google.appengine.api import memcache
+from gae_services import get_memcache
 import logging
 
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 
-from .gapi_utils import SavedCall, api_fetch
-from .exceptions import GoogleApiHttpException, InvalidGrantException
+from .gapi_utils import api_fetch
+from .exceptions import GapiException, GoogleApiHttpException, InvalidGrantException
 
 JWT_HEADER = {
     "alg": "RS256",
     "typ": "JWT",
 }
+
+LOCK_TIMEOUT = 30
 
 
 class TokenRequest(object):
@@ -51,6 +54,7 @@ class TokenRequest(object):
         self.email = impersonate_as
         self.life_time = life_time
         self.validate_certificate = validate_certificate
+        self._locked = False
 
     def get_claims(self):
         request_time = int(time())
@@ -65,9 +69,38 @@ class TokenRequest(object):
             claims['prn'] = self.email
         return claims
 
-    def _cache_key(self):
+    def _cache_key(self, for_=''):
         """Key used to identify in cache"""
-        return 'token:%s:%s:%s' % (self.service_email, self.scope, self.email)
+        return md5('token:%s:%s:%s:%s' % (self.service_email, self.scope, self.email, for_)).hexdigest()
+
+    @property
+    def lock_cache_client(self):
+        if not hasattr(self, '_lock_cache_client'):
+            self._lock_cache_client = get_memcache().Client()
+        return self._lock_cache_client
+
+    def _locked_by_others(self):
+        return get_memcache().get(self._cache_key('lock')) is not None
+
+    def _lock(self):
+        key = self._cache_key('lock')
+        cache = self.lock_cache_client
+        old_lock = cache.gets(key)
+        if old_lock is not None:
+            return False  # lock exists, could not lock myself
+        else:  # there is a chance to acquire the lock
+            cache.set(key, 1, LOCK_TIMEOUT)  # initialize
+            lock = cache.gets(key)  # get and compare
+            if lock != 1:
+                return False
+            self._locked = cache.cas(key, lock + 1,LOCK_TIMEOUT)  # set and compare has to return True if we were not late
+            return self._locked
+
+
+    def _unlock(self):
+        assert self._locked, "Attempt to unlock while not locked"
+        key = self._cache_key('lock')
+        self.lock_cache_client.delete(key)
 
     def sign(self, message):
         return '.'.join((message, google_base64_url_encode(sing_RS256(message, self.key))))
@@ -86,38 +119,63 @@ class TokenRequest(object):
         })
 
     def _cache_get(self):
-        return memcache.get(self._cache_key())
+        return get_memcache().get(self._cache_key())
 
     def _cache_set(self, token):
-        memcache.set(self._cache_key(), token, token['expires_in'])
+        get_memcache().set(self._cache_key(), token, token['expires_in'])
 
     def get_token(self):
         """
         Retrieves and returns access token from cache or from Google auth.
         """
+        locked = self._locked
         token = self._cache_get()
         if not token:
-            # logging.debug('Fetching new token for %s/%s.' % (self.service_email, self.email))
+            try:
+                locked = self._lock()
+                if not locked:
+                    logging.info("Concurent lock while getting token. Waiting for the other process to return token or release the lock.")
+                    n = 0
+                    while n < 30:
+                        sleep(1)
+                        n += 1
+                        if not self._locked_by_others():
+                            token = self._cache_get()
+                            if not token:
+                                locked = self._lock()
+                            break
+                if locked:
+                    token = self._refresh_token()
+                elif not token:
+                    raise GapiException('Unable to get token for %r (service: %r).' % (self.email, self.service_email))
+            finally:
+                if locked:
+                   self._unlock()
+        return token
 
-            result = api_fetch(
-                 url='https://accounts.google.com/o/oauth2/token',
-                 method='POST',
-                 payload=self.get_payload(),
-                 validate_certificate=self.validate_certificate,
-            )
 
-            if result.status_code != 200:
-                error = ''
-                try:
-                    response = loads(result.content)
-                    error = response['error']
-                except Exception, e:
-                    pass
-                if error == 'invalid_grant':
-                    raise InvalidGrantException(result, "Error getting token for %r (service: %r)" % (self.service_email, self.email))
-                raise GoogleApiHttpException(result)  # TODO: custom exception
-            token = loads(result.content)
-            self._cache_set(token)
+    def _refresh_token(self):
+        # logging.debug('Fetching new token for %s/%s.' % (self.service_email, self.email))
+
+        result = api_fetch(
+                url='https://accounts.google.com/o/oauth2/token',
+                method='POST',
+                payload=self.get_payload(),
+                validate_certificate=self.validate_certificate,
+        )
+
+        if result.status_code != 200:
+            error = ''
+            try:
+                response = loads(result.content)
+                error = response['error']
+            except Exception, e:
+                pass
+            if error == 'invalid_grant':
+                raise InvalidGrantException(result, "Error getting token for %r (service: %r)" % (self.email, self.service_email))
+            raise GoogleApiHttpException(result)  # TODO: custom exception
+        token = loads(result.content)
+        self._cache_set(token)
         return token
 
     def __str__(self):

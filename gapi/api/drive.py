@@ -16,7 +16,6 @@ import base64
 import json
 from ..gapi_utils import api_fetch
 from ..client import ApiService, ApiResource
-from google.appengine.api.urlfetch import fetch
 
 __author__ = 'Lukas Marek <lukas.marek@gmail.com>'
 
@@ -37,7 +36,7 @@ ApiService._services['drive'] = Service
 
 class Files(ApiResource):
     _name = 'files'
-    _methods = 'list', 'get', 'insert', 'update', 'patch', 'delete', 'touch', 'trash', 'untrash'
+    _methods = 'list', 'get', 'insert', 'update', 'patch', 'delete', 'touch', 'trash', 'untrash', 'export'
     _base_path = '/files'
 
     _boundary = '-------314159265358979323846'
@@ -60,6 +59,12 @@ class Files(ApiResource):
         url = self._get_upload_url()
 
         return self._service.fetch(url, method='POST', headers=headers, payload=request_body)
+
+    def _api_export(self, id, export_format=None):
+        url = 'https://docs.google.com/feeds/download/documents/export/Export?id=%s' % id
+        if export_format is not None:
+            url += '&exportFormat=' + export_format
+        return self._service.fetch(url)
 
     def _api_update(self, content, **kwargs):
         if not 'id' in kwargs:

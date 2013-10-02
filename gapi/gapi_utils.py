@@ -1,7 +1,6 @@
 import logging
 from time import sleep
-from google.appengine.api.urlfetch import fetch, DeadlineExceededError
-from google.appengine.runtime.apiproxy_errors import DeadlineExceededError as ApiProxy_DeadlineExceededError
+from gae_services import fetch, DeadlineExceededError, ApiProxy_DeadlineExceededError
 
 
 RETRY_COUNT = 3
@@ -51,10 +50,10 @@ def api_fetch(*args, **kwargs):
             succeeded = True
         except (DeadlineExceededError, ApiProxy_DeadlineExceededError), e:
             error_message = 'exceeded deadline'
-        except Exception, e:
-            logging.warning('An unknown error while trying to fetch %r' % url)
-            logging.warning('Exc class: %s.%s' % (e.__class__.__module__, e.__class__.__name__))
-            raise e
+        # except Exception, e:
+        #     logging.warning('An unknown error while trying to fetch %r' % url)
+        #     logging.warning('Exc class: %s.%s' % (e.__class__.__module__, e.__class__.__name__))
+        #     raise e
         if succeeded and str(result.status_code)[0] == '5':
             error_message = 'status code %s' % result.status_code
             succeeded = False
