@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup
 
 setup(
     name='GaPi',
@@ -13,9 +10,11 @@ setup(
     author_email='google@kebet.cz',
     url='https://github.com/czervenka/gapi',
     packages=['gapi'],
+    install_requires=[
+        'pycrypto',
+    ],
     scripts=['convert_key.py'],
     data_files=[
         ('tests', ('tests/test_generated_key.pem', 'tests/test_google_bundle.p12'))
     ],
-    requires=['pycrypto'],
 )
