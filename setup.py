@@ -17,5 +17,5 @@ setup(
     data_files=[
         ('tests', ('tests/test_generated_key.pem', 'tests/test_google_bundle.p12'))
     ],
-    requires=['PyCrypto'],
+    requires=['pycrypto'],
 )
