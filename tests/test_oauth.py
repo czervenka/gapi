@@ -52,7 +52,7 @@ class TestToken(TestCase):
         header = str(token)
         self.assertEquals(header, 'Bearer 1/8xbJqaOZXSUZbHLl5EOtu1pxz3fmmetKx9W8CV4t79M', msg="The token string representation does not conform values from auth server")
         self.assertEquals(memcache.get.call_count, 1, msg="Token tries to retrieve the key from memcahced first.")
-        self.assertEquals(memcache.set.call_args[0][2], 3250, msg="The memcache expiration equals expiration of the token got from auth server.")
+        self.assertEquals(memcache.set.call_args[0][2], 3250-300, msg="The memcache expiration equals expiration of the token got from auth server minus 300s.")
 
         fetch.return_value.status_code = 403
         fetch.return_value.content = '{"error": "invalid_grant"}'
