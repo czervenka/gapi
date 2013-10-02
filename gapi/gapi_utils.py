@@ -1,11 +1,9 @@
 import logging
 from time import sleep
-
 from google.appengine.api.urlfetch import fetch, DeadlineExceededError
 from google.appengine.runtime.apiproxy_errors import DeadlineExceededError as ApiProxy_DeadlineExceededError
 
 from gapi.exceptions import RateLimitExceededException
-
 
 RETRY_COUNT = 3
 RETRY_MULTIPLIER = 3
@@ -15,10 +13,8 @@ USE_GZIP = True
 from StringIO import StringIO
 import gzip
 
-
 def gunzip_str(data):
     return gzip.GzipFile(fileobj=StringIO(data)).read()
-
 
 class SavedCall(object):
 
@@ -51,33 +47,27 @@ def api_fetch(*args, **kwargs):
     call = SavedCall(fetch, *args, **kwargs)
 
     error_message = 'None'
-    last_exception = None
+    last_exception = None    
     while not succeeded and retry_count:
-        last_exception = None
         try:
             result = call()
             succeeded = True
         except (DeadlineExceededError, ApiProxy_DeadlineExceededError), e:
-            last_exception = e
             error_message = 'exceeded deadline'
         except RateLimitExceededException, e:
-            last_exception = e
             error_message = 'rate limit exceeded'
-            retry_delay = max(1.0, retry_delay)
-        except Exception, e:
-            logging.warning('An unknown error while trying to fetch %r' % url)
-            logging.warning('Exc class: %s.%s' % (e.__class__.__module__, e.__class__.__name__))
-            raise e
+        # except Exception, e:
+        #     logging.warning('An unknown error while trying to fetch %r' % url)
+        #     logging.warning('Exc class: %s.%s' % (e.__class__.__module__, e.__class__.__name__))
+        #     raise e
         if succeeded and str(result.status_code)[0] == '5':
             error_message = 'status code %s' % result.status_code
             succeeded = False
+        retry_count -= 1
         if not succeeded and retry_count:
-            logging.info('Retrying in %0.2fs due to %s (url: %r; try %d / %d)' %
-                         (retry_delay, error_message, url, original_retry_count - retry_count + 1, original_retry_count))
+            logging.info('Retrying in %0.2fs due to %s (url: %r; try %d / %d)' % (retry_delay, error_message, url, original_retry_count - retry_count, original_retry_count))
             sleep(retry_delay)
             retry_delay *= retry_multiplier
-        retry_count -= 1
-
     if succeeded:
         if result.headers.get('content-encoding', None) == 'gzip':
             result.content = gunzip_str(result.content)

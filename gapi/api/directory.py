@@ -1,4 +1,4 @@
-# Copyright 2013 Lukas Lukovsky <lukas.lukovsky@gmail.com>
+# Copyright 2007 Robin Gottfried <copyright@kebet.cz>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-__author__ = 'Lukas Lukovsky <terramexx@gmail.com>'
+__author__ = 'Robin Gottfried <google@kebet.cz>'
 
 from ..client import ApiService, ApiResource
 
@@ -26,10 +26,13 @@ class Service(ApiService):
     def _resources(self):
         return [Users]
 
-ApiService._services['directory'] = Service
-
+ApiService._services['admin'] = Service
 
 class Users(ApiResource):
+
     _name = 'users'
-    _methods = ['list']
-    _base_path = '/users'
+    _methods = 'list', 'get', 'insert', 'update', 'patch', 'delete'
+
+    @property
+    def _base_path(self):
+        return '/users'

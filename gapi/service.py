@@ -20,9 +20,8 @@ from google.appengine.api import memcache
 from json import loads, dumps
 from uuid import uuid1
 from copy import deepcopy
-
 from gapi import AUTH_TYPE_V1, AUTH_TYPE_V2
-from .gapi_utils import api_fetch
+from .gapi_utils import SavedCall, api_fetch
 from .oauth2 import TokenRequest
 from .exceptions import \
     DailyLimitExceededException, \
@@ -32,6 +31,7 @@ from .exceptions import \
     RateLimitExceededException, \
     UnauthorizedException, \
     UnauthorizedUrl
+from google.appengine.api.urlfetch_errors import DeadlineExceededError
 
 
 class Service(object):
@@ -154,7 +154,6 @@ class Service(object):
                 else:
                     print repr(headers)
                     print result.content
-                    data = {'error': {}}
                 error = data['error']
                 if str(result.status_code)[0] == '4' and 'errors' in error and error.get('errors', []):
                     reason = error['errors'][0]['reason']
@@ -171,7 +170,7 @@ class Service(object):
                     elif reason == 'authError' and result.status_code == 401:
                         logging.info('Invalid credentials while getting %r for %r.' % (kwargs['url'], self.email))
                         raise InvalidCredentialsException(result, kwargs['url'])
-                    elif reason == 'push.webhookUrlUnauthorized' and result.status_code == 401:
+                    if reason == 'push.webhookUrlUnauthorized' and result.status_code == 401:
                         logging.info('Unauthorized webhook url %r (%r).' % (kwargs.get('address', 'n/a'), self.email))
                         raise UnauthorizedUrl(result, kwargs.get('address', 'n/a'))
                     else:
@@ -182,7 +181,10 @@ class Service(object):
             if result.status_code == 204:
                 return None
             else:
-                return ApiResult(loads(result.content), self.fetch, kwargs)
+                if result.headers.get('content-type').startswith('application/json'):
+                    return ApiResult(loads(result.content), self.fetch, kwargs)
+                else:
+                    return result
 
 
 class ApiResult(dict):
