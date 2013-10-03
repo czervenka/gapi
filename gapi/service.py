@@ -21,7 +21,7 @@ from json import loads, dumps
 from uuid import uuid1
 from copy import deepcopy
 from gapi import AUTH_TYPE_V1, AUTH_TYPE_V2
-from .gapi_utils import SavedCall, api_fetch
+from .gapi_utils import api_fetch
 from .oauth2 import TokenRequest
 from .exceptions import \
     DailyLimitExceededException, \

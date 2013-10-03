@@ -15,7 +15,7 @@
 import base64
 import json
 from ..gapi_utils import api_fetch
-from ..client import ApiService, ApiResource
+from ..client import ApiService, ApiResource, value_to_gdata
 from google.appengine.api.urlfetch import fetch
 
 __author__ = 'Lukas Marek <lukas.marek@gmail.com>'
