@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from gapi import VERSION
+VERSION = (1, 0, 1)
 from setuptools import setup
 from setuptools.command.install import install as _install
 
