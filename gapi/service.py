@@ -143,12 +143,14 @@ class Service(object):
                 raise NotFoundException(result)
             else:
                 headers = dict([ (key.lower(), value.lower()) for key, value in result.headers.items()])
-                if headers['content-type'].startswith('application/json'):
+                if headers['content-type'].lower().startswith('application/json'):
                     data = loads(result.content)
+                    try:
+                        error = data['error']
+                    except KeyError:
+                        error = 'Invalid error response from server, missing error description: %r ...' % result.content[:30]
                 else:
-                    print repr(headers)
-                    print result.content
-                error = data['error']
+                    error = 'Invalid response content-type (%r): %r...' % (headers['content-type'], result.content[:30])
                 if str(result.status_code)[0] == '4' and 'errors' in error and error.get('errors', []):
                     reason = error['errors'][0]['reason']
                     if reason == 'dailyLimitExceeded' and result.status_code == 403:
