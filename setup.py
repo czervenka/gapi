@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from gapi import VERSION
 from setuptools import setup
 from setuptools.command.install import install as _install
 
@@ -19,7 +19,7 @@ setup(
     cmdclass={'install': install},
 
     name='GaPi',
-    version='1.0',
+    version='.'.join(map(str, VERSION)),
     description='Google API for Google app engine',
     author='Robin Gottfried',
     author_email='google@kebet.cz',

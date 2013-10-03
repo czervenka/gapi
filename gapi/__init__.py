@@ -14,6 +14,7 @@
 #
 __author__ = 'Robin Gottfried <google@kebet.cz>'
 
+VERSION = (1, 0, 1)
 AUTH_TYPE_V1 = 'oauth.v1'
 AUTH_TYPE_V2 = 'oauth.v2'
 
