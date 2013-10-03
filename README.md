@@ -14,14 +14,28 @@ Google's python library for this task.
 
 **Features** I did not found in Google's library
 
-*(reasons to use this one ;))*
+*(reasons to use this one gApi)*
 
 * google.appengine.api.memcache to store auth tokens (only tokens, nothing more),
 * simple way to run batch requests,
 * automatically repeat request when it fails,
 * easy paging through gotten records.
+* built-in support fo google appengine
 
 *Note: Only Calendar and Tasks APIs are currently implemented. But others can be added easily*
+
+Installation
+--
+
+        pip install -e git+https://github.com/czervenka/gapi#egg=gApi
+
+update your app.yaml:
+
+        libraries:
+        - name: pycrypto
+          version: latest
+
+done :)
 
 Quick example
 --

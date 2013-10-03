@@ -1,8 +1,23 @@
 #!/usr/bin/env python
 
 from setuptools import setup
+from setuptools.command.install import install as _install
+
+class install(_install):
+    def run(self):
+        res = _install.run(self)
+        print '''
+Do not forget to enable pycrypto library in your app.yaml:
+
+    libraries:
+    - name: pycrypto
+      version: latest
+'''
+        return res
 
 setup(
+    cmdclass={'install': install},
+
     name='GaPi',
     version='1.0',
     description='Google API for Google app engine',
