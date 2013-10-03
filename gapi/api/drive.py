@@ -72,8 +72,8 @@ class Files(ApiResource):
         item = value_to_gdata(item)
         return self._service.fetch(url, method='PATCH', params=kwargs, payload=item)
 
-    def _api_export(self, id, export_format=None):
-        url = 'https://docs.google.com/feeds/download/documents/export/Export?id=%s' % id
+    def _api_export(self, id, docs_type='documents', export_format=None):
+        url = 'https://docs.google.com/feeds/download/%s/export/Export?id=%s' % (docs_type, id)
         if export_format is not None:
             url += '&exportFormat=' + export_format
         return self._service.fetch(url)
