@@ -20,13 +20,27 @@ from ..client import ApiService, ApiResource
 class Service(ApiService):
 
     _base_url = 'https://www.googleapis.com/admin/directory/v1'
-    _default_scope = 'https://www.googleapis.com/auth/admin.directory.user.readonly'
+    _default_scope = 'https://www.googleapis.com/auth/admin.directory.user.readonly https://www.googleapis.com/auth/admin.directory.group.readonly'
 
     @property
     def _resources(self):
-        return [Users]
+        return [Members, Users]
 
 ApiService._services['admin'] = Service
+
+
+class Members(ApiResource):
+    _name = 'members'
+    _methods = 'delete', 'get', 'insert', 'list', 'patch', 'update'
+
+    def __init__(self, *args, **kwargs):
+        super(Members, self).__init__(*args, **kwargs)
+        self.group_key = None
+
+    @property
+    def _base_path(self):
+        return '/groups/%s/members' % self.group_key
+
 
 class Users(ApiResource):
 
