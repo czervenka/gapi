@@ -22,6 +22,9 @@ import sys
 try:
     from OpenSSL.crypto import load_pkcs12, dump_privatekey, FILETYPE_PEM
 except ImportError:
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        raise
+
     print """OpenSSL library not found. Please install pyOpenSSL."""
     try:
         import pip
