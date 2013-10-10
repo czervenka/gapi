@@ -15,7 +15,8 @@
 import base64
 import json
 from ..gapi_utils import api_fetch
-from ..client import ApiService, ApiResource
+from ..client import ApiService, ApiResource, value_to_gdata
+from google.appengine.api.urlfetch import fetch
 
 __author__ = 'Lukas Marek <lukas.marek@gmail.com>'
 
@@ -36,7 +37,7 @@ ApiService._services['drive'] = Service
 
 class Files(ApiResource):
     _name = 'files'
-    _methods = 'list', 'get', 'insert', 'update', 'patch', 'delete', 'touch', 'trash', 'untrash', 'export'
+    _methods = 'list', 'get', 'insert', 'update', 'patch', 'delete', 'copy', 'touch', 'trash', 'untrash', 'export'
     _base_path = '/files'
 
     _boundary = '-------314159265358979323846'
@@ -52,6 +53,11 @@ class Files(ApiResource):
     def _api_untrash(self, id, **kwargs):
         return self._service.fetch(self._get_item_url({'id': id}) + '/untrash', method='POST', params=kwargs)
 
+    def _api_copy(self, file_id, item, **kwargs):
+        item = value_to_gdata(item)
+        return self._service.fetch(
+            self._get_item_url({'id': file_id}) + '/copy', method='POST', params=kwargs, payload=item)
+
     def _api_insert(self, content, **kwargs):
 
         request_body = self._get_body(content, **kwargs)
@@ -60,8 +66,14 @@ class Files(ApiResource):
 
         return self._service.fetch(url, method='POST', headers=headers, payload=request_body)
 
-    def _api_export(self, id, export_format=None):
-        url = 'https://docs.google.com/feeds/download/documents/export/Export?id=%s' % id
+    def _api_patch(self, file_id, item, **kwargs):
+        url = self._get_item_url({'id': file_id})
+        kwargs = value_to_gdata(kwargs)
+        item = value_to_gdata(item)
+        return self._service.fetch(url, method='PATCH', params=kwargs, payload=item)
+
+    def _api_export(self, id, docs_type='documents', export_format=None):
+        url = 'https://docs.google.com/feeds/download/%s/Export?key=%s' % (docs_type, id)
         if export_format is not None:
             url += '&exportFormat=' + export_format
         return self._service.fetch(url)
@@ -83,7 +95,8 @@ class Files(ApiResource):
     def _get_body(self, content, **kwargs):
         mime = kwargs.get('mime', 'application/octet-stream')
         metadata = {}
-        for key in 'description', 'indexableText', 'labels', 'lastViewedByMeDate', 'mimeType', 'modifiedDate', 'parents', 'title':
+        for key in 'description', 'indexableText', 'labels', 'lastViewedByMeDate', 'mimeType', 'modifiedDate', \
+                   'parents', 'title', 'writersCanShare':
             if key in kwargs:
                 metadata[key] = kwargs[key]
         content = base64.b64encode(content)
@@ -126,8 +139,24 @@ class About(ApiResource):
 
 class Changes(ApiResource):
     _name = 'changes'
-    _methods = 'get', 'list'
+    _methods = 'get', 'list', 'watch'
     _base_path = '/changes'
+
+    def _api_watch(self, id, address, channel_type='web_hook', ttl=3600, **kwargs):
+        payload = {
+            'id': id,
+            'type': channel_type,
+            'address': address,
+            'params': {
+                'ttl': ttl
+            }
+        }
+
+        if kwargs:
+            payload.update(kwargs)
+
+        return self._service.fetch(self._base_url + '/watch', method='POST', payload=payload)
+
 
 class Permissions(ApiResource):
     _name = 'permissions'

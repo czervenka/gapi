@@ -1,7 +1,9 @@
 import logging
 from time import sleep
-from gae_services import fetch, DeadlineExceededError, ApiProxy_DeadlineExceededError
+from google.appengine.api.urlfetch import fetch, DeadlineExceededError
+from google.appengine.runtime.apiproxy_errors import DeadlineExceededError as ApiProxy_DeadlineExceededError
 
+from gapi.exceptions import RateLimitExceededException
 
 RETRY_COUNT = 3
 RETRY_MULTIPLIER = 3
@@ -44,12 +46,16 @@ def api_fetch(*args, **kwargs):
     succeeded = False
     call = SavedCall(fetch, *args, **kwargs)
 
+    error_message = 'None'
+    last_exception = None    
     while not succeeded and retry_count:
         try:
             result = call()
             succeeded = True
         except (DeadlineExceededError, ApiProxy_DeadlineExceededError), e:
             error_message = 'exceeded deadline'
+        except RateLimitExceededException, e:
+            error_message = 'rate limit exceeded'
         # except Exception, e:
         #     logging.warning('An unknown error while trying to fetch %r' % url)
         #     logging.warning('Exc class: %s.%s' % (e.__class__.__module__, e.__class__.__name__))
@@ -62,6 +68,12 @@ def api_fetch(*args, **kwargs):
             logging.info('Retrying in %0.2fs due to %s (url: %r; try %d / %d)' % (retry_delay, error_message, url, original_retry_count - retry_count, original_retry_count))
             sleep(retry_delay)
             retry_delay *= retry_multiplier
-    if result.headers.get('content-encoding', None) == 'gzip':
-        result.content = gunzip_str(result.content)
+    if succeeded:
+        if result.headers.get('content-encoding', None) == 'gzip':
+            result.content = gunzip_str(result.content)
+    else:
+        if last_exception:
+            raise last_exception
+        else:
+            raise DeadlineExceededError('Api fetch not successful after %s retries' % original_retry_count)
     return result

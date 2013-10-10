@@ -16,15 +16,22 @@ __author__ = 'Robin Gottfried <google@kebet.cz>'
 
 import logging
 from urllib import urlencode
+from google.appengine.api import memcache
 from json import loads, dumps
 from uuid import uuid1
 from copy import deepcopy
-from time import sleep
 from gapi import AUTH_TYPE_V1, AUTH_TYPE_V2
-from .gapi_utils import SavedCall, api_fetch
+from .gapi_utils import api_fetch
 from .oauth2 import TokenRequest
-from .exceptions import GoogleApiHttpException, NotFoundException, DailyLimnitExceededException, \
-        InvalidCredentialsException, UnauthorizedUrl
+from .exceptions import \
+    DailyLimitExceededException, \
+    GoogleApiHttpException, \
+    InvalidCredentialsException, \
+    NotFoundException,  \
+    RateLimitExceededException, \
+    UnauthorizedException, \
+    UnauthorizedUrl
+from google.appengine.api.urlfetch_errors import DeadlineExceededError
 
 
 class Service(object):
@@ -107,7 +114,6 @@ class Service(object):
         params.update(request.uri.query)
         return str(request.uri)
 
-
     def fetch(self, url, method='GET', headers={}, payload=None, params={}):
         headers = dict([(key.lower(), value) for key, value in deepcopy(headers).items()])
         params = deepcopy(params)
@@ -153,9 +159,16 @@ class Service(object):
                     error = 'Invalid response content-type (%r): %r...' % (headers['content-type'], result.content[:30])
                 if str(result.status_code)[0] == '4' and 'errors' in error and error.get('errors', []):
                     reason = error['errors'][0]['reason']
-                    if reason == 'dailyLimitExceeded' and result.status_code == 403:
+                    if reason == 'unauthorized' and result.status_code == 401:
+                        logging.warning('Got "Unathorized" response for %r when calling %r.' % (self.email, kwargs['url']))
+                        raise UnauthorizedException(result, kwargs['url'])
+                    elif reason == 'dailyLimitExceeded' and result.status_code == 403:
+                        memcache.set('off-' + self.token.service_email, 3600)  # mark off for hour
                         logging.info('Daily limit exceeded while getting %r for %r.' % (kwargs['url'], self.email))
-                        raise DailyLimnitExceededException(result, kwargs['url'])
+                        raise DailyLimitExceededException(result, kwargs['url'])
+                    elif (reason == 'rateLimitExceeded' or 'User Rate Limit Exceeded' in result.content) and result.status_code == 403:
+                        logging.info('Rate limit exceeded while getting %r for %r.' % (kwargs['url'], self.email))
+                        raise RateLimitExceededException(result, kwargs['url'])
                     elif reason == 'authError' and result.status_code == 401:
                         logging.info('Invalid credentials while getting %r for %r.' % (kwargs['url'], self.email))
                         raise InvalidCredentialsException(result, kwargs['url'])
@@ -200,5 +213,3 @@ class ApiResult(dict):
         while page:
             yield page
             page = page.next_page()
-
-

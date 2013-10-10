@@ -42,7 +42,13 @@ class NotFoundException(GoogleApiHttpException):
     pass
 
 
-class DailyLimnitExceededException(GoogleApiHttpException):
+class DailyLimitExceededException(GoogleApiHttpException):
+    def __init__(self, result, url):
+        self.url = url
+        super(self.__class__, self).__init__(result)
+
+
+class RateLimitExceededException(GoogleApiHttpException):
     def __init__(self, result, url):
         self.url = url
         super(self.__class__, self).__init__(result)
@@ -53,8 +59,10 @@ class PermitionException(GoogleApiHttpException):
         self.message = message
         super(PermitionException, self).__init__(result)
 
+
 class UnauthorizedUrl(PermitionException):
     pass
+
 
 class InvalidGrantException(PermitionException):
     pass
@@ -62,3 +70,9 @@ class InvalidGrantException(PermitionException):
 
 class InvalidCredentialsException(PermitionException):
     pass
+
+
+class UnauthorizedException(GoogleApiHttpException):
+    def __init__(self, result, url):
+        self.url = url
+        super(self.__class__, self).__init__(result)
