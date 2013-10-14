@@ -67,6 +67,9 @@ class UnauthorizedUrl(PermitionException):
 class InvalidGrantException(PermitionException):
     pass
 
+class AccessDeniedException(PermitionException):
+    pass
+
 
 class InvalidCredentialsException(PermitionException):
     pass

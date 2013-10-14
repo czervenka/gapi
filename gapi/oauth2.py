@@ -33,7 +33,7 @@ from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 
 from .gapi_utils import api_fetch
-from .exceptions import GapiException, GoogleApiHttpException, InvalidGrantException
+from .exceptions import GapiException, GoogleApiHttpException, InvalidGrantException, AccessDeniedException
 
 JWT_HEADER = {
     "alg": "RS256",
@@ -171,6 +171,8 @@ class TokenRequest(object):
                 error = response['error']
             except Exception, e:
                 pass
+            if error == 'access_denied':
+                raise AccessDeniedException(result, "Error getting token for %r (service: %r)" % (self.email, self.service_email))
             if error == 'invalid_grant':
                 raise InvalidGrantException(result, "Error getting token for %r (service: %r)" % (self.email, self.service_email))
             raise GoogleApiHttpException(result)  # TODO: custom exception
