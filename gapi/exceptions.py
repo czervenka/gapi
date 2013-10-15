@@ -59,6 +59,10 @@ class PermitionException(GoogleApiHttpException):
         self.message = message
         super(PermitionException, self).__init__(result)
 
+    def __str__(self):
+        return '%s %s (%r)' % (self.code, self.error, self.message)
+
+
 
 class UnauthorizedUrl(PermitionException):
     pass
