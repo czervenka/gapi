@@ -172,7 +172,7 @@ class TokenRequest(object):
             except Exception, e:
                 pass
             if error == 'access_denied':
-                raise AccessDeniedException(result, "Error getting token for %r (service: %r)" % (self.email, self.service_email))
+                raise AccessDeniedException(result, "Error getting token for %r (service: %r; scope: %s)" % (self.email, self.service_email, self.scope))
             if error == 'invalid_grant':
                 raise InvalidGrantException(result, "Error getting token for %r (service: %r)" % (self.email, self.service_email))
             raise GoogleApiHttpException(result)  # TODO: custom exception
