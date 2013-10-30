@@ -52,16 +52,21 @@ class Api(object):
         # read Google documentation and use IPython to explore all apis
     """
 
-    def __init__(self, apis, service_email, service_key, impersonate_as=None, validate_certificate=True, auth_type=AUTH_TYPE_V2):
+    def __init__(self, apis, service_email, service_key, impersonate_as=None, validate_certificate=True, auth_type=AUTH_TYPE_V2, scopes=None):
 
         all_apis = ApiService._services
-        scopes = set()
+        if scopes is None:
+            scopes = set()
+            update_scopes = True
+        else:
+            update_scopes = False
         services = {}
         for api in apis:
             if not api in all_apis:
                 raise ValueError('API %r is not registered. Please import API module first.' % api)
             service = all_apis[api]
-            scopes.add(service._default_scope)
+            if update_scopes:
+                scopes.add(service._default_scope)
             services[api] = service
         self._services = services
         for service_name, service in services.items():
