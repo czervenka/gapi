@@ -30,7 +30,7 @@ class Service(ApiService):
 
     @property
     def _resources(self):
-        return [Files, Revisions, Changes, About, Permissions]
+        return [Files, Revisions, Changes, About, Permissions, Channels]
 
 ApiService._services['drive'] = Service
 
@@ -139,7 +139,7 @@ class About(ApiResource):
 
 class Changes(ApiResource):
     _name = 'changes'
-    _methods = 'get', 'list', 'watch'
+    _methods = 'get', 'list', 'watch',
     _base_path = '/changes'
 
     def _api_watch(self, id, address, channel_type='web_hook', ttl=3600, **kwargs):
@@ -156,6 +156,20 @@ class Changes(ApiResource):
             payload.update(kwargs)
 
         return self._service.fetch(self._base_url + '/watch', method='POST', payload=payload)
+
+
+class Channels(ApiResource):
+    _name = 'channels'
+    _methods = 'stop',
+    _base_path = '/channels'
+
+    def _api_stop(self, id, resource_id, **kwargs):
+        payload = {
+            'id': id,
+            'resource_id': resource_id,
+        }
+        return self._service.fetch(self._base_url + '/stop', method='POST', payload=payload)
+
 
 
 class Permissions(ApiResource):
