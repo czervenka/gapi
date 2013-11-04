@@ -166,7 +166,7 @@ class Channels(ApiResource):
     def _api_stop(self, id, resource_id, **kwargs):
         payload = {
             'id': id,
-            'resource_id': resource_id,
+            'resourceId': resource_id,
         }
         return self._service.fetch(self._base_url + '/stop', method='POST', payload=payload)
 
