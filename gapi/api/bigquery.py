@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-__author__ = 'Lukas Lukovsky <terramexx@gmail.com>'
+from gapi.exceptions import GoogleApiHttpException
 
 from ..client import ApiService, ApiResource
 
@@ -72,7 +72,7 @@ class Tables(ApiResource):
     project_id = None
 
     _name = 'tables'
-    _methods = 'get', 'update'
+    _methods = 'get', 'update', 'insert_all'
 
     @property
     def _base_path(self):
@@ -88,3 +88,13 @@ class Tables(ApiResource):
     def _api_update(self, dataset_id, table_id, body, **kwargs):
         return self._service.fetch(
             self._get_item_url(dataset_id, table_id), method='PUT', payload=body, params=kwargs)
+
+    def _api_insert_all(self, dataset_id, table_id, rows, **kwargs):
+        body = dict()
+        body['kind'] = "bigquery#tableDataInsertAllRequest"
+        body['rows'] = rows
+        res = self._service.fetch(
+            self._get_item_url(dataset_id, table_id) + "/insertAll", method='POST', payload=body, params=kwargs)
+        if 'insertErrors' in res:
+            raise GoogleApiHttpException(res['insertErrors'])
+        return res
