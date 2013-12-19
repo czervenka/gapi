@@ -2,16 +2,30 @@ import logging
 from time import sleep
 from google.appengine.api.urlfetch import fetch, DeadlineExceededError
 from google.appengine.runtime.apiproxy_errors import DeadlineExceededError as ApiProxy_DeadlineExceededError
+from google.appengine.api import urlfetch
+
 
 from gapi.exceptions import RateLimitExceededException
 
-RETRY_COUNT = 3
-RETRY_MULTIPLIER = 3
-USE_GZIP = True
 
 
 from StringIO import StringIO
 import gzip
+
+try:
+    import gapi_config
+except ImportError:
+    gapi_config = type('modul', (object,), {})
+
+RETRY_COUNT = getattr(gapi_config, 'RETRY_DELAY', 4)
+RETRY_MULTIPLIER = getattr(gapi_config, 'RETRY_MULTIPLIER', 3)
+USE_GZIP = getattr(gapi_config, 'USE_GZIP', True)
+DEFAULT_DEADLINE = getattr(gapi_config, 'DEFAULT_DEADLINE', 2)
+
+# FIXME: This is a hot patch - google api did not react to fetch(deadline=...)
+# argument. Setting default deadline magically enabled fetch's deadline=....
+# (needed on server only - works on local dev)
+urlfetch.set_default_fetch_deadline(DEFAULT_DEADLINE)
 
 def gunzip_str(data):
     return gzip.GzipFile(fileobj=StringIO(data)).read()
@@ -24,6 +38,7 @@ class SavedCall(object):
         self.kwargs = kwargs
 
     def __call__(self):
+        # logging.debug('Calling %s(%s)' % (self.callback.__name__, ', '.join(list(self.args)+[ '%s=%r' % (k,v) for k,v in self.kwargs.items()])))
         return self.callback(*self.args, **self.kwargs)
 
 
@@ -40,6 +55,8 @@ def api_fetch(*args, **kwargs):
         headers['accept-encoding'] = 'gzip'
         headers['user-agent'] = 'gapi (gzip)'
         kwargs['headers'] = headers
+    if not 'deadline' in kwargs:
+        kwargs['deadline'] = DEFAULT_DEADLINE
 
     original_retry_count = retry_count
     retry_delay = 0.1
@@ -47,13 +64,15 @@ def api_fetch(*args, **kwargs):
     call = SavedCall(fetch, *args, **kwargs)
 
     error_message = 'None'
-    last_exception = None    
+    last_exception = None
     while not succeeded and retry_count:
         try:
             result = call()
             succeeded = True
         except (DeadlineExceededError, ApiProxy_DeadlineExceededError), e:
             error_message = 'exceeded deadline'
+            call.kwargs['deadline'] = call.kwargs.get('deadline', 1) * 3
+            logging.debug('Exceeded deadline - new deadline is %rs' % call.kwargs['deadline'])
         except RateLimitExceededException, e:
             error_message = 'rate limit exceeded'
         # except Exception, e:
