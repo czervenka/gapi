@@ -43,7 +43,6 @@ class Usage(ApiResource):
         if isinstance(day, (datetime, date)):
             day = day.strftime('%Y-%m-%d')
         url = self._base_url.format(user=user, date=day)
-        print '%r' % url
         return self._service.fetch(url, method='GET', params=kwargs)
 
     def _api_get_latest(self, user, max_age=8, **kwargs):
